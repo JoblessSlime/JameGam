@@ -42,6 +42,18 @@ public class Smooth2DMovements : MonoBehaviour
     [Header("---------- JUMP COYOTE TIME ----------")]
     [Range(0f, 1f)] public float jumpCoyoteTime = 0.1f;
 
+    [Header("---------- WALL JUMP ----------")]
+    [Range(0.25f, 50f)] public float wallJumpMoveAcceleration = 5f;
+    [Range(0.25f, 50f)] public float wallJumpMoveDeceleration = 5f;
+    public bool resetJumpsOnWallSlide = true;
+    public Vector2 wallJumpDirection = new Vector2(-20f, 6.5f); // Not Sure if this is a good thing to have, seems like a new jump var
+    [Range(0f, 1f)] public float wallJumpPostBufferTime = 0.125f;
+    [Range(0.01f, 5f)] public float wallJumpGravityOnReleaseMultiplier = 1f;
+
+    [Header("---------- WALL SLIDE ----------")]
+    [Min(0.01f)] public float wallSlideSpeed = 5f;
+    [Range(0.25f, 50f)] public float wallSlideDecelerationSpeed = 50f;
+
     [Header("---------- JUMP VISUALISATION TOOL ----------")]
     public bool showWalkJumpArc = false;
     public bool showRunJumpArc = false;
@@ -55,11 +67,18 @@ public class Smooth2DMovements : MonoBehaviour
     public float initialJumpVelocity { get; private set; }
     public float adjustedJumpHeight { get; private set; }
 
+    // Wall Jump
+    public float wallJumpGravity { get; private set; }
+    public float initialWallJumpVelocity { get; private set; }
+    public float adjustedWallJumpHeight { get; private set; }
+
     [Header("---------- GROUNDED / COLLISION CHECKS ----------")]
     public LayerMask groundLayer;
     public float groundDetectionRayLength = 0.02f;
     public float headDetectionRayLength = 0.02f;
     [Range(0f, 1f)] public float headWidth = 0.75f;
+    public float wallDetectionRayLength = 0.125f;
+    [Range(0.01f, 2f)] public float wallDetectionRayHeightMultiplier = 0.9f;
 
     [Header("---------- DEBUG ----------")]
     public bool debugShowIsGroundedBox;
@@ -78,8 +97,30 @@ public class Smooth2DMovements : MonoBehaviour
     //Collision check variables
     private RaycastHit2D groundHit;
     private RaycastHit2D headHit;
+    private RaycastHit2D wallHit;
+    private RaycastHit2D lastWallHit;
     private bool isGrounded;
     private bool bumpedHead;
+    private bool isTouchingWall;
+
+    //Wall Slide variables
+    private bool isWallSliding;
+    private bool isWallSlideFalling;
+
+    //Wall Jump variables
+    private bool useWallJumpMoveStats;
+    private bool isWallJumping;
+    private bool isWallJumpFastFalling;
+    private bool isWallJumpFalling;
+    private float wallJumpTime;
+    private float wallJumpFastFallTime;
+    private float wallJumpFastFallReleaseSpeed;
+
+    private float wallJumpPostBufferTimer;
+
+    private float wallJumpApexPoint;
+    private float timePastWallJumpApexThreshold;
+    private bool isPastWallJumpApexThreshold;
 
     //Jump variables
     public float verticalVelocity { get; private set; }
@@ -116,12 +157,16 @@ public class Smooth2DMovements : MonoBehaviour
         movement = move.action.ReadValue<Vector2>();
         JumpChecks();
         CountTimers();
+        WallSlideCheck();
+        WallJumpCheck();
     }
 
     private void FixedUpdate()
     {
         CollisionChecks();
         Jump();
+        WallSlide();
+        WallJump();
 
         if(isGrounded)
         {
@@ -129,7 +174,17 @@ public class Smooth2DMovements : MonoBehaviour
         }
         else
         {
-            Move(airAcceleration, airDeceleration, movement);
+            //wall jumping
+            if (useWallJumpMoveStats)
+            {
+                Move(wallJumpMoveAcceleration, wallJumpMoveDeceleration, movement);
+            }
+
+            //airborne
+            else
+            {
+                Move(airAcceleration, airDeceleration, movement);
+            }
         }
     }
 
@@ -148,6 +203,10 @@ public class Smooth2DMovements : MonoBehaviour
         adjustedJumpHeight = jumpHeight * jumpHeightCompensationFactor;
         gravity = -(2f * adjustedJumpHeight) / Mathf.Pow(timeTillJumpApex, 2f);
         initialJumpVelocity = Mathf.Abs(gravity) * timeTillJumpApex;
+
+        adjustedWallJumpHeight = wallJumpDirection.y * jumpHeightCompensationFactor;
+        wallJumpGravity = -(2f * adjustedWallJumpHeight) / Mathf.Pow(timeTillJumpApex, 2f);
+        initialWallJumpVelocity = Mathf.Abs(wallJumpGravity) * timeTillJumpApex;
     }
 
     #region Movements
@@ -199,11 +258,30 @@ public class Smooth2DMovements : MonoBehaviour
     #endregion
 
     #region Jump
+
+    private void ResetJumpValues()
+    {
+        isJumping = false;
+        isFalling = false;
+        isFastFalling = false;
+        fastFallTime = 0f;
+        isPastApexThreshold = false;
+    }
+
     private void JumpChecks()
     {
         //When we press the jump button
         if (jump.action.WasPressedThisFrame())
         {
+            if(isWallSlideFalling && wallJumpPostBufferTimer >= 0f)
+            {
+                return;
+            }
+
+            else if(isWallSliding || (isTouchingWall && !isGrounded))
+            {
+                return ;
+            }
             jumpBufferTimer = jumpBufferTime;
             jumpReleasedDuringBuffer = false;
         }
@@ -246,7 +324,7 @@ public class Smooth2DMovements : MonoBehaviour
         }
 
         //Double jump
-        else if (jumpBufferTimer > 0f && isJumping && numberOfJumpsUsed < numberOfJumpsAllowed)
+        else if (jumpBufferTimer > 0f && (isJumping || isWallJumping || isWallSlideFalling) && !isTouchingWall && numberOfJumpsUsed < numberOfJumpsAllowed)
         {
             isFastFalling = false;
             InitiateJump(1);
@@ -260,14 +338,12 @@ public class Smooth2DMovements : MonoBehaviour
         }
 
         //Landed
-        if((isJumping || isFastFalling) && isGrounded  && verticalVelocity <= 0f)
+        if((isJumping || isFastFalling || isWallJumpFalling || isWallJumping || isWallSlideFalling || isWallSliding) && isGrounded  && verticalVelocity <= 0f)
         {
-            Debug.Log("hey");
-            isJumping = false;
-            isFalling = false;
-            isFastFalling = false;
-            fastFallTime = 0f;
-            isPastApexThreshold = false;
+
+            ResetJumpValues();
+            StopWallSlide();
+            ResetWallJumpValues();
             numberOfJumpsUsed = 0;
 
             verticalVelocity = Physics2D.gravity.y;
@@ -363,7 +439,7 @@ public class Smooth2DMovements : MonoBehaviour
         }
 
         //Normal gravity while falling
-        if (!isGrounded && !isJumping)
+        if (!isGrounded && !isJumping && !isWallSliding && !isWallJumping)
         {
             if (!isFalling)
             {
@@ -376,6 +452,235 @@ public class Smooth2DMovements : MonoBehaviour
         verticalVelocity = Mathf.Clamp(verticalVelocity, -maxFallSpeed, 50f);
 
         playerRB.linearVelocity = new Vector2(playerRB.linearVelocity.x, verticalVelocity);
+    }
+    #endregion
+
+    #region Wall Slide
+
+    private void WallSlideCheck()
+    {
+        if (isTouchingWall && !isGrounded)
+        {
+            if (verticalVelocity < 0f && !isWallSliding)
+            {
+                ResetJumpValues();
+                ResetWallJumpValues();
+
+                isWallSlideFalling = false;
+                isWallSliding = true;
+
+                if (resetJumpsOnWallSlide)
+                {
+                    numberOfJumpsUsed = 0;
+                }
+            }
+        }
+
+        else if (isWallSliding && !isTouchingWall && !isGrounded && !isWallSlideFalling)
+        {
+            isWallSlideFalling = true;
+            StopWallSlide();
+        }
+
+        else
+        {
+            StopWallSlide();
+        }
+    }
+
+    private void StopWallSlide()
+    {
+        if (isWallSliding)
+        {
+            numberOfJumpsUsed++;
+            isWallSliding = false;
+        }
+    }
+
+
+    private void WallSlide()
+    {
+        if (isWallSliding)
+        {
+            verticalVelocity = Mathf.Lerp(verticalVelocity, - wallSlideSpeed, wallSlideDecelerationSpeed * Time.fixedDeltaTime);
+        }
+    }
+
+    #endregion
+
+    #region Wall Jump
+
+    private void WallJumpCheck()
+    {
+        if (ShouldApplyPostWallJumpBuffer())
+        {
+            wallJumpPostBufferTimer = wallJumpPostBufferTime;
+        }
+
+        //wall Jump Fast falling
+        if (jump.action.WasReleasedThisFrame() && !isWallSliding && !isTouchingWall && isWallJumping)
+        {
+            if (verticalVelocity > 0f)
+            {
+                if (isPastWallJumpApexThreshold)
+                {
+                    isPastWallJumpApexThreshold = false;
+                    isWallJumpFastFalling = true;
+                    wallJumpFastFallTime = timeForUpwardsCancel;
+                    
+                    verticalVelocity = 0f;
+                }
+                else
+                {
+                    isWallJumpFastFalling = true;
+                    wallJumpFastFallReleaseSpeed = verticalVelocity;
+                }
+            }
+        }
+
+        Debug.Log(wallJumpPostBufferTime);
+        //actual jump with post wall jump buffer time
+        if (jump.action.WasPressedThisFrame() && wallJumpPostBufferTimer > 0f)
+        {
+            InitiateWallJump();
+        }
+    }
+
+    private void InitiateWallJump()
+    {
+        if (!isWallJumping)
+        {
+            isWallJumping = true;
+            useWallJumpMoveStats = true;
+        }
+
+        StopWallSlide();
+        ResetJumpValues();
+        wallJumpTime = 0f;
+
+        verticalVelocity = initialWallJumpVelocity;
+
+        int dirMultiplier = 0;
+        Vector2 hitPoint = lastWallHit.collider.ClosestPoint(bodyCollider.bounds.center);
+        
+        if (hitPoint.x > transform.position.x)
+        {
+            dirMultiplier = -1;
+        }
+        else { dirMultiplier = 1; }
+        moveVelocity.x = Mathf.Abs(wallJumpDirection.x) * dirMultiplier;
+    }
+
+    private void WallJump()
+    {
+        //APPLY WALL JUMP GRAVITY
+        if (isWallJumping)
+        {
+            //TIME TO TAKE OVER MOVEMENT CONTROLS WHILE WALL JUMPING
+            wallJumpTime += Time.fixedDeltaTime;
+            if (wallJumpTime >= timeTillJumpApex)
+            {
+                useWallJumpMoveStats = false;
+            }
+
+            //HIT HEAD
+            if (bumpedHead)
+            {
+                isWallJumpFastFalling = true;
+                useWallJumpMoveStats = false;
+            }
+
+            //GRAVITY IN ASCENDING
+            if (verticalVelocity >= 0f)
+            {
+                //APEX CONTROLS
+                wallJumpApexPoint = Mathf.InverseLerp(wallJumpDirection.y, 0f, verticalVelocity);
+
+                if (wallJumpApexPoint > apexThreshold)
+                {
+                    if (!isPastWallJumpApexThreshold)
+                    {
+                        isPastWallJumpApexThreshold = true;
+                        timePastWallJumpApexThreshold = 0f;
+                    }
+
+                    if (isPastWallJumpApexThreshold)
+                    {
+                        timePastWallJumpApexThreshold += Time.fixedDeltaTime;
+                        if (timePastWallJumpApexThreshold < apexHangTime)
+                        {
+                            verticalVelocity = 0f;
+                        }
+                        else
+                        {
+                            verticalVelocity = -0.01f;
+                        }
+                    }
+                }
+
+                //GRAVITY IN ASCENDING BUT NOT PAST APEX THRESHOLD
+                else if (!isWallJumpFastFalling)
+                {
+                    verticalVelocity += wallJumpGravity * Time.fixedDeltaTime;
+
+                    if (isPastWallJumpApexThreshold)
+                    {
+                        isPastWallJumpApexThreshold = false;
+                    }
+                }
+            }
+
+            //GRAVITY ON DESENDING
+            else if (!isWallJumpFastFalling)
+            {
+                verticalVelocity += wallJumpGravity * Time.fixedDeltaTime;
+            }
+
+            else if (verticalVelocity < 0f)
+            {
+                if (!isWallJumpFalling)
+                {
+                    isWallJumpFalling = true;
+                }
+            }
+        }
+
+        //HANDLE WALL JUMP CUT TIME
+        if (isWallJumpFastFalling)
+        {
+            if (wallJumpFastFallTime >= timeForUpwardsCancel)
+            {
+                verticalVelocity += wallJumpGravity * wallJumpGravityOnReleaseMultiplier * Time.fixedDeltaTime;
+            }
+            else if (wallJumpFastFallTime < timeForUpwardsCancel)
+            {
+                verticalVelocity = Mathf.Lerp(wallJumpFastFallReleaseSpeed, 0f, (wallJumpFastFallTime / timeForUpwardsCancel));
+            }
+
+            wallJumpFastFallTime += Time.fixedDeltaTime;
+        }
+    }
+
+    private bool ShouldApplyPostWallJumpBuffer()
+    {
+        if(!isGrounded && (isTouchingWall || isWallSliding))
+        {
+            return true;
+        }
+        else { return false; }
+    }
+
+    private void ResetWallJumpValues()
+    {
+        isWallSlideFalling = false;
+        useWallJumpMoveStats = false;
+        isWallJumping = false;
+        isWallJumpFastFalling = false;
+        isWallJumpFalling = false;
+        isPastWallJumpApexThreshold = false;
+
+        wallJumpFastFallTime = 0f;
+        wallJumpTime = 0f;
     }
     #endregion
 
@@ -441,18 +746,45 @@ public class Smooth2DMovements : MonoBehaviour
         #endregion
     }
 
+    private void IsTouchingWall()
+    {
+        float originEndPoint = 0f;
+        if (isFacingRight)
+        {
+            originEndPoint = bodyCollider.bounds.max.x;
+        }
+        else { originEndPoint = bodyCollider.bounds.min.x; }
+
+        float adjustedHeight = bodyCollider.bounds.size.y * wallDetectionRayHeightMultiplier;
+
+        Vector2 boxCastOrigin = new Vector2(originEndPoint, bodyCollider.bounds.center.y);
+        Vector2 boxCastSize = new Vector2(wallDetectionRayLength, adjustedHeight);
+
+        wallHit = Physics2D.BoxCast(boxCastOrigin, boxCastSize, 0f, transform.right, wallDetectionRayLength, groundLayer);
+
+        if (wallHit.collider != null)
+        {
+            lastWallHit = wallHit;
+            isTouchingWall = true;
+        }
+        else { isTouchingWall = false; }
+    }
+
     private void CollisionChecks()
     {
         IsGrounded();
         BumpedHead();
+        IsTouchingWall();
     }
     #endregion
 
     #region Timers
     private void CountTimers()
     {
+        // Jump Buffer
         jumpBufferTimer -= Time.deltaTime;
 
+        // Jump Coyote time
         if(!isGrounded)
         {
             coyoteTimer -= Time.deltaTime;
@@ -460,6 +792,12 @@ public class Smooth2DMovements : MonoBehaviour
         else
         {
             coyoteTimer = jumpCoyoteTime;
+        }
+
+        // wall jump buffer timer
+        if (!ShouldApplyPostWallJumpBuffer())
+        {
+            wallJumpPostBufferTimer -= Time.deltaTime;
         }
     }
     #endregion
