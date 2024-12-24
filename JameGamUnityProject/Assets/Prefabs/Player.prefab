@@ -13,6 +13,8 @@ GameObject:
   - component: {fileID: 2186940622608400647}
   - component: {fileID: 3147839587443539035}
   - component: {fileID: 1290254966346656012}
+  - component: {fileID: 7416792762875497282}
+  - component: {fileID: 7805238657009247621}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -164,7 +166,7 @@ MonoBehaviour:
   move: {fileID: -4977207334016857129, guid: 560bb9078c8e0154d961c6714db9b1fc, type: 3}
   jump: {fileID: -6950252516274463410, guid: 560bb9078c8e0154d961c6714db9b1fc, type: 3}
   maxWalkSpeed: 12.5
-  groundAcceleration: 1.2
+  groundAcceleration: 5
   groundDeceleration: 20
   airAcceleration: 5
   airDeceleration: 5
@@ -180,14 +182,6 @@ MonoBehaviour:
   apexHangTime: 0.075
   jumpBufferTime: 0.125
   jumpCoyoteTime: 0.1
-  wallJumpMoveAcceleration: 5
-  wallJumpMoveDeceleration: 5
-  resetJumpsOnWallSlide: 1
-  wallJumpDirection: {x: -12, y: 2}
-  wallJumpPostBufferTime: 0.125
-  wallJumpGravityOnReleaseMultiplier: 1
-  wallSlideSpeed: 5
-  wallSlideDecelerationSpeed: 50
   showWalkJumpArc: 1
   showRunJumpArc: 1
   stopOnCollision: 1
@@ -200,12 +194,47 @@ MonoBehaviour:
   groundDetectionRayLength: 0.035
   headDetectionRayLength: 0.035
   headWidth: 0.75
-  wallDetectionRayLength: 0.125
-  wallDetectionRayHeightMultiplier: 0.9
   debugShowIsGroundedBox: 0
   debugShowHeadBumpedBox: 0
   feetCollider: {fileID: 7798060316396488654}
   bodyCollider: {fileID: 6044097752004715297}
+--- !u!114 &7416792762875497282
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 181490087182979242}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bf1a212aa84794649b8333f2cb625271, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  TagName: Glace
+  smooth2DMovements: {fileID: 1290254966346656012}
+  groundAcceleration_OnIce: 4
+  groundDeceleration_OnIce: 0.25
+  maxSlidingSpeed: 20
+--- !u!114 &7805238657009247621
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 181490087182979242}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2cd3aae0966216346b994d037a54f3ba, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  useCheckpointMethod: 0
+  killZoneTag: KillZone
+  player: {fileID: 181490087182979242}
+  checkpointTag: Checkpoint
+  lastCheckpoint: {fileID: 357074029318254298}
+  revertTimeWhenDying: 3
+  timeBetweenUpdatePos: 0.5
+  smooth2DMovements: {fileID: 1290254966346656012}
 --- !u!1 &1964628327482682649
 GameObject:
   m_ObjectHideFlags: 0
