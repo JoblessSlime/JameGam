@@ -2,9 +2,9 @@ using UnityEngine;
 
 public class ConstantWindZone : MonoBehaviour
 {
-    //public ParticleSystem windVFX;
-    public float windForce = 10f; 
-    public Vector2 windDirection = Vector2.right; 
+    //public ParticleSystem windVFX; // Reference to the wind VFX
+    public float windForce = 10f; // Force of the wind
+    public Vector2 windDirection = Vector2.right; // Direction of the wind (right or left)
 
     private void OnTriggerStay2D(Collider2D other)
     {
@@ -14,6 +14,7 @@ public class ConstantWindZone : MonoBehaviour
 
             if (playerRigidbody != null)
             {
+                Debug.Log("force activated  ");
                 Vector2 force = windDirection.normalized * windForce;
                 playerRigidbody.AddForce(force);
             }
@@ -24,6 +25,7 @@ public class ConstantWindZone : MonoBehaviour
     {
         if (other.CompareTag("Player") ) //&& windVFX != null
         {
+            Debug.Log("is playing vfx");
             //windVFX.Play();
         }
     }
@@ -32,6 +34,7 @@ public class ConstantWindZone : MonoBehaviour
     {
         if (other.CompareTag("Player") ) //&& windVFX != null
         {
+            Debug.Log("is not playing vfx anymore");
             //windVFX.Stop();
         }
     }
