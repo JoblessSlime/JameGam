@@ -14,7 +14,6 @@ public class ConstantWindZone : MonoBehaviour
 
             if (playerRigidbody != null)
             {
-                Debug.Log("force activated  ");
                 Vector2 force = windDirection.normalized * windForce;
                 playerRigidbody.AddForce(force);
             }
@@ -25,7 +24,6 @@ public class ConstantWindZone : MonoBehaviour
     {
         if (other.CompareTag("Player") ) //&& windVFX != null
         {
-            Debug.Log("is playing vfx");
             //windVFX.Play();
         }
     }
@@ -34,7 +32,6 @@ public class ConstantWindZone : MonoBehaviour
     {
         if (other.CompareTag("Player") ) //&& windVFX != null
         {
-            Debug.Log("is not playing vfx anymore");
             //windVFX.Stop();
         }
     }
