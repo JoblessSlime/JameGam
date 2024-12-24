@@ -4,6 +4,9 @@
 TagManager:
   serializedVersion: 3
   tags:
+  - Glace
+  - KillZone
+  - Checkpoint
   - Gift
   layers:
   - Default
