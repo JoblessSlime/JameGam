@@ -78,7 +78,9 @@ public class Smooth2DMovements : MonoBehaviour
     //Collision check variables
     private RaycastHit2D groundHit;
     private RaycastHit2D headHit;
-    private bool isGrounded;
+    private RaycastHit2D wallHit;
+    private RaycastHit2D lastWallHit;
+    public bool isGrounded { get; private set; }
     private bool bumpedHead;
 
     //Jump variables
