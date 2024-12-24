@@ -164,7 +164,7 @@ MonoBehaviour:
   move: {fileID: -4977207334016857129, guid: 560bb9078c8e0154d961c6714db9b1fc, type: 3}
   jump: {fileID: -6950252516274463410, guid: 560bb9078c8e0154d961c6714db9b1fc, type: 3}
   maxWalkSpeed: 12.5
-  groundAcceleration: 1.2
+  groundAcceleration: 5
   groundDeceleration: 20
   airAcceleration: 5
   airDeceleration: 5
@@ -180,14 +180,6 @@ MonoBehaviour:
   apexHangTime: 0.075
   jumpBufferTime: 0.125
   jumpCoyoteTime: 0.1
-  wallJumpMoveAcceleration: 5
-  wallJumpMoveDeceleration: 5
-  resetJumpsOnWallSlide: 1
-  wallJumpDirection: {x: -12, y: 2}
-  wallJumpPostBufferTime: 0.125
-  wallJumpGravityOnReleaseMultiplier: 1
-  wallSlideSpeed: 5
-  wallSlideDecelerationSpeed: 50
   showWalkJumpArc: 1
   showRunJumpArc: 1
   stopOnCollision: 1
@@ -200,8 +192,6 @@ MonoBehaviour:
   groundDetectionRayLength: 0.035
   headDetectionRayLength: 0.035
   headWidth: 0.75
-  wallDetectionRayLength: 0.125
-  wallDetectionRayHeightMultiplier: 0.9
   debugShowIsGroundedBox: 0
   debugShowHeadBumpedBox: 0
   feetCollider: {fileID: 7798060316396488654}
