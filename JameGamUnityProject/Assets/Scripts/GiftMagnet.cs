@@ -47,7 +47,7 @@ public class GiftMagnet : MonoBehaviour
             if (spawnPoint != null && giftPrefab != null)
             {
                 Instantiate(giftPrefab, spawnPoint.position, Quaternion.identity);
-            }
+            }   
         }
     }
 }
