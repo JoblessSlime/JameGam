@@ -5,8 +5,6 @@ using UnityEngine.SceneManagement;
 public class WinGame : MonoBehaviour
 {
     public GameObject player;
-    public GameObject KdoPrefab;
-    public Transform playerStartPos;
 
     [Header("UI")]
     public GameObject WinWindow;
@@ -30,39 +28,37 @@ public class WinGame : MonoBehaviour
     void Update()
     {
         time += Time.deltaTime;
+        Debug.Log("end game is " + endGame);
         if (!endGame)
-            timerInGame.text = ((int) (timer - time)).ToString();
-        if ( time >= timer)
         {
-            LooseWindow.SetActive (true);
-            timerInGame.text = "";
-            endGame = true;
+            timerInGame.text = ((int) (timer - time)).ToString();
+            if (time >= timer)
+            {
+                LooseWindow.SetActive(true);
+                timerInGame.text = "";
+                endGame = true;
+            }
         }
     }
 
     public void OnTriggerStay2D(Collider2D collision)
     {
         Debug.Log("Collision");
-        if (collision.gameObject.CompareTag("Gift"))
+        if (!endGame)
         {
-            WinWindow.SetActive(true);
-            endGame = true;
-            timerInGame.text = "";
-            timerWinWindow.text = ((int)time).ToString();
-            player.SetActive(false);
+            if (collision.gameObject.CompareTag("Gift"))
+            {
+                WinWindow.SetActive(true);
+                endGame = true;
+                timerInGame.text = "";
+                timerWinWindow.text = ((int)time).ToString();
+                player.SetActive(false);
+            }
         }
     }
 
     public void restart()
     {
-        /*
-        time = 0f;
-        WinWindow.SetActive(false);
-        LooseWindow.SetActive(false);
-        endGame = false;
-        player.transform.position = playerStartPos.position;
-        KdoPrefab.transform.position = playerStartPos.position;
-        */
         SceneManager.LoadScene("Scene Salim");
     }
 }
