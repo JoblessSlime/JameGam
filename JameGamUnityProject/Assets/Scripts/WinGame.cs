@@ -1,10 +1,11 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class WinGame : MonoBehaviour
 {
-    public string WinZoneTag;
     public GameObject player;
+    public GameObject KdoPrefab;
     public Transform playerStartPos;
 
     [Header("UI")]
@@ -39,24 +40,29 @@ public class WinGame : MonoBehaviour
         }
     }
 
-    public void OnTriggerEnter2D(Collider2D collision)
+    public void OnTriggerStay2D(Collider2D collision)
     {
-        if (collision.gameObject.CompareTag(WinZoneTag))
+        Debug.Log("Collision");
+        if (collision.gameObject.CompareTag("Gift"))
         {
             WinWindow.SetActive(true);
             endGame = true;
             timerInGame.text = "";
-            timerWinWindow.text = ((int) time).ToString();
+            timerWinWindow.text = ((int)time).ToString();
+            player.SetActive(false);
         }
     }
 
     public void restart()
     {
+        /*
         time = 0f;
         WinWindow.SetActive(false);
         LooseWindow.SetActive(false);
         endGame = false;
         player.transform.position = playerStartPos.position;
-        this.gameObject.transform.position = playerStartPos.position;
+        KdoPrefab.transform.position = playerStartPos.position;
+        */
+        SceneManager.LoadScene("Scene Salim");
     }
 }

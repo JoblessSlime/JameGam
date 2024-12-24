@@ -11,7 +11,6 @@ GameObject:
   - component: {fileID: 4558616683666118761}
   - component: {fileID: 1935945764548724956}
   - component: {fileID: 6094247543998452465}
-  - component: {fileID: 1562829968868024806}
   m_Layer: 0
   m_Name: KDO V
   m_TagString: Gift
@@ -135,23 +134,3 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 1, y: 1}
   m_EdgeRadius: 0
---- !u!114 &1562829968868024806
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4192895239924668820}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 967309ef20534464cbb5018326de286e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  WinZoneTag: WinZone
-  player: {fileID: 0}
-  playerStartPos: {fileID: 0}
-  WinWindow: {fileID: 0}
-  LooseWindow: {fileID: 0}
-  timerInGame: {fileID: 0}
-  timerWinWindow: {fileID: 0}
-  timer: 150
