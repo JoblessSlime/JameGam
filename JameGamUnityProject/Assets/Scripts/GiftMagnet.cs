@@ -1,4 +1,5 @@
-using UnityEngine;
+    using System.Security.Cryptography;
+    using UnityEngine;
 
 public class GiftMagnet : MonoBehaviour
 {
@@ -6,11 +7,13 @@ public class GiftMagnet : MonoBehaviour
     public Transform magnet;
     public Transform spawnPoint;
     public GameObject giftPrefab;
+    public GiftManagement giftManager; 
 
     private void OnTriggerStay2D(Collider2D other)
     {
         if (other.CompareTag("Gift"))
         {
+            Debug.Log("found gift");
             Vector3 giftPosition = other.transform.position;
             Vector3 magnetPosition = magnet.position;
 
@@ -37,7 +40,7 @@ public class GiftMagnet : MonoBehaviour
 
             if (spawnPoint != null && giftPrefab != null)
             {
-                Instantiate(giftPrefab, spawnPoint.position, Quaternion.identity);
+                giftManager.CarryGift();
             }   
         }
     }
