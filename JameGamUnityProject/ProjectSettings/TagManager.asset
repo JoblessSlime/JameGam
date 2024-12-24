@@ -8,6 +8,8 @@ TagManager:
   - KillZone
   - Checkpoint
   - Gift
+  - VerticalBox
+  - HorizontalBox
   layers:
   - Default
   - TransparentFX
