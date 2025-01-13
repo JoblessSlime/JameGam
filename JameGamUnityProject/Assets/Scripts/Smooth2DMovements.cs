@@ -7,6 +7,11 @@ using UnityEngine.UIElements;
 
 public class Smooth2DMovements : MonoBehaviour
 {
+    [Header("---------- SFX ----------")]
+    public AudioSource audioSource;
+    public AudioClip audioClip;
+    private bool actionDone = false;
+
     [Header("---------- INPUTS ----------")]
     public InputActionReference move;
     public InputActionReference jump;
@@ -150,6 +155,7 @@ public class Smooth2DMovements : MonoBehaviour
     {
         isFacingRight = true;
         playerRB = GetComponent<Rigidbody2D>();
+        audioSource.clip = audioClip;
     }
 
     private void Update()
@@ -212,6 +218,20 @@ public class Smooth2DMovements : MonoBehaviour
     #region Movements
     private void Move(float acceleration, float deceleration, Vector2 moveInput)
     {
+        // Sound
+        if (isGrounded && moveVelocity != Vector2.zero && !actionDone) 
+        {
+            audioSource.Play();
+            Debug.Log("playingSound");
+            actionDone = true;
+        }
+        else if (actionDone)
+        {
+            audioSource.Pause();
+            Debug.Log("stopingSound");
+            actionDone= false;
+        }
+
         if(moveInput != Vector2.zero)
         {
             TurnCheck(moveInput);
